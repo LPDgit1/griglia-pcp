@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Analisi locale di Griglie di Repertorio secondo la Psicologia dei Costrutti Personali."
+    />
+    <title>Griglia PCP · Analisi di repertorio</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <div>
+            <strong>Griglia PCP</strong>
+            <small>Repertory Grid Studio</small>
+          </div>
+        </div>
+
+        <nav class="nav" aria-label="Navigazione principale">
+          <button class="nav-item active" data-view="dashboard">
+            <span class="nav-icon">⌂</span><span>Dashboard</span>
+          </button>
+          <button class="nav-item" data-view="grid">
+            <span class="nav-icon">▦</span><span>Griglia</span>
+          </button>
+          <button class="nav-item" data-view="correlations">
+            <span class="nav-icon">↔</span><span>Correlazioni</span>
+          </button>
+          <button class="nav-item" data-view="dynamics">
+            <span class="nav-icon">✦</span><span>RG Dynamics</span>
+          </button>
+          <button class="nav-item" data-view="factors">
+            <span class="nav-icon">◈</span><span>PCA e fattori</span>
+          </button>
+          <button class="nav-item" data-view="clusters">
+            <span class="nav-icon">⑂</span><span>Cluster</span>
+          </button>
+          <button class="nav-item" data-view="data">
+            <span class="nav-icon">⇄</span><span>Dati</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="local-note">
+            <span class="status-dot"></span>
+            <div>
+              <strong>Elaborazione locale</strong>
+              <small>I dati restano nel browser</small>
+            </div>
+          </div>
+          <button class="ghost-button sidebar-help" id="showHelpBtn">Guida rapida</button>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="viewEyebrow">Panoramica analitica</p>
+            <h1 id="viewTitle">Dashboard</h1>
+          </div>
+          <div class="top-actions">
+            <span class="grid-name" id="gridNameLabel">Griglia demo</span>
+            <button class="secondary-button" id="openImportBtn">Importa</button>
+            <button class="primary-button" data-view-target="grid">Modifica griglia</button>
+          </div>
+        </header>
+
+        <section class="content">
+          <div class="view active" id="dashboardView">
+            <div class="intro-row">
+              <div>
+                <p class="section-kicker">Quadro sintetico</p>
+                <h2 id="dashboardHeading">Profilo della griglia</h2>
+                <p class="muted" id="dashboardSubtitle"></p>
+              </div>
+              <button class="secondary-button" id="loadDemoBtn">Ripristina demo</button>
+            </div>
+
+            <div class="metric-grid" id="mainMetrics"></div>
+
+            <div class="dashboard-grid">
+              <article class="panel span-7">
+                <div class="panel-heading">
+                  <div>
+                    <p class="section-kicker">Indicatori PCP</p>
+                    <h3>Profilo strutturale</h3>
+                  </div>
+                  <span class="badge">classici</span>
+                </div>
+                <div id="indicatorList" class="indicator-list"></div>
+              </article>
+              <article class="panel span-5">
+                <div class="panel-heading">
+                  <div>
+                    <p class="section-kicker">Distribuzione</p>
+                    <h3>Uso della scala</h3>
+                  </div>
+                </div>
+                <div id="scaleDistribution"></div>
+              </article>
+              <article class="panel span-7">
+                <div class="panel-heading">
+                  <div>
+                    <p class="section-kicker">Mappa rapida</p>
+                    <h3>Correlazioni tra costrutti</h3>
+                  </div>
+                  <button class="text-button" data-view-target="correlations">Apri matrice</button>
+                </div>
+                <div id="dashboardHeatmap" class="chart-wrap"></div>
+              </article>
+              <article class="panel span-5">
+                <div class="panel-heading">
+                  <div>
+                    <p class="section-kicker">Lettura guidata</p>
+                    <h3>In evidenza</h3>
+                  </div>
+                </div>
+                <div id="insightList" class="insight-list"></div>
+              </article>
+            </div>
+          </div>
+
+          <div class="view" id="gridView">
+            <div class="intro-row">
+              <div>
+                <p class="section-kicker">Editor</p>
+                <h2>Inserimento della griglia</h2>
+                <p class="muted">Modifica etichette e punteggi. Le analisi si aggiornano automaticamente.</p>
+              </div>
+              <div class="inline-actions">
+                <button class="secondary-button" id="addElementBtn">+ Elemento</button>
+                <button class="secondary-button" id="addConstructBtn">+ Costrutto</button>
+              </div>
+            </div>
+            <article class="panel">
+              <div class="panel-heading grid-controls">
+                <div>
+                  <p class="section-kicker">Matrice di valutazione</p>
+                  <h3 id="matrixDimensions"></h3>
+                </div>
+                <div class="scale-control">
+                  <label for="scaleMin">Scala</label>
+                  <input id="scaleMin" type="number" value="1" min="-10" max="10" />
+                  <span>—</span>
+                  <input id="scaleMax" type="number" value="7" min="-10" max="20" />
+                </div>
+              </div>
+              <div class="table-scroll">
+                <table class="grid-table" id="gridEditorTable"></table>
+              </div>
+              <p class="table-note">Suggerimento: usa etichette bipolari leggibili. Il polo sinistro corrisponde ai valori bassi.</p>
+            </article>
+          </div>
+
+          <div class="view" id="correlationsView">
+            <div class="intro-row">
+              <div>
+                <p class="section-kicker">Associazioni lineari</p>
+                <h2>Analisi delle correlazioni</h2>
+                <p class="muted">Pearson <em>r</em>, calcolato sulla matrice corrente.</p>
+              </div>
+              <label class="select-label">
+                Matrice
+                <select id="correlationScope">
+                  <option value="constructs">Costrutti</option>
+                  <option value="elements">Elementi</option>
+                </select>
+              </label>
+            </div>
+            <div class="dashboard-grid">
+              <article class="panel span-7">
+                <div class="panel-heading">
+                  <h3 id="correlationHeatmapTitle">Heatmap dei costrutti</h3>
+                  <span class="badge">Pearson r</span>
+                </div>
+                <div id="correlationHeatmap" class="chart-wrap large-chart"></div>
+              </article>
+              <article class="panel span-5">
+                <div class="panel-heading">
+                  <h3>Associazioni più forti</h3>
+                </div>
+                <div id="correlationHighlights" class="insight-list"></div>
+              </article>
+            </div>
+            <article class="panel top-gap">
+              <div class="panel-heading">
+                <h3>Matrice completa</h3>
+              </div>
+              <div class="table-scroll">
+                <table class="analysis-table" id="correlationTable"></table>
+              </div>
+            </article>
+          </div>
+
+          <div class="view" id="dynamicsView">
+            <div class="intro-row">
+              <div>
+                <p class="section-kicker">Repertory Grid Dynamics</p>
+                <h2>Indici dinamici e trasformativi</h2>
+                <p class="muted">Misure quantitative derivate dal framework dell'articolo: entropia, rete dei costrutti, geometria del sé, dilemmi, costo del cambiamento e readiness.</p>
+              </div>
+              <span class="badge soft">Sperimentale</span>
+            </div>
+            <div class="metric-grid compact" id="dynamicsMetrics"></div>
+            <div id="roleNotice" class="role-notice"></div>
+            <div class="dashboard-grid">
+              <article class="panel span-7">
+                <div class="panel-heading">
+                  <div>
+                    <p class="section-kicker">Rete dei costrutti</p>
+                    <h3>Centralità, ponte e fragilità</h3>
+                  </div>
+                </div>
+                <div class="table-scroll">
+                  <table class="analysis-table" id="constructDynamicsTable"></table>
+                </div>
+              </article>
+              <article class="panel span-5">
+                <div class="panel-heading">
+                  <div>
+                    <p class="section-kicker">Geometria del sé</p>
+                    <h3>Attrattori e prossimità</h3>
+                  </div>
+                </div>
+                <div id="selfGeometryPanel" class="insight-list"></div>
+              </article>
+              <article class="panel span-7">
+                <div class="panel-heading">
+                  <div>
+                    <p class="section-kicker">Dilemmi implicativi</p>
+                    <h3>Costo del cambiamento</h3>
+                  </div>
+                  <span class="badge" id="dilemmaBadge">0 dilemmi</span>
+                </div>
+                <div class="table-scroll">
+                  <table class="analysis-table" id="changeCostTable"></table>
+                </div>
+              </article>
+              <article class="panel span-5">
+                <div class="panel-heading">
+                  <div>
+                    <p class="section-kicker">Permeabilità</p>
+                    <h3>Readiness e micro-esperimenti</h3>
+                  </div>
+                </div>
+                <div class="table-scroll">
+                  <table class="analysis-table" id="readinessTable"></table>
+                </div>
+              </article>
+              <article class="panel span-6">
+                <div class="panel-heading">
+                  <div>
+                    <p class="section-kicker">Polarizzazione selettiva</p>
+                    <h3>Rigidità locali</h3>
+                  </div>
+                </div>
+                <div class="table-scroll">
+                  <table class="analysis-table" id="selectivePolarizationTable"></table>
+                </div>
+              </article>
+              <article class="panel span-6">
+                <div class="panel-heading">
+                  <div>
+                    <p class="section-kicker">Anomalie locali</p>
+                    <h3>Dissonanza e instabilità</h3>
+                  </div>
+                </div>
+                <div class="table-scroll">
+                  <table class="analysis-table" id="anomalyTable"></table>
+                </div>
+              </article>
+            </div>
+            <p class="table-note">Nota metodologica: gli indici RG Dynamics sono operazionalizzazioni quantitative sperimentali del framework allegato. Le misure che dipendono da ruoli speciali vengono calcolate solo se gli elementi sono riconoscibili dal nome, ad esempio “Io”, “Io ideale”, “Sé temuto”, “Sé futuro probabile”, “come gli altri mi vedono”.</p>
+          </div>
+
+          <div class="view" id="factorsView">
+            <div class="intro-row">
+              <div>
+                <p class="section-kicker">Struttura latente</p>
+                <h2>PCA e lettura fattoriale</h2>
+                <p class="muted">Estrazione sulle componenti principali dei costrutti centrati.</p>
+              </div>
+              <span class="badge soft">Esplorativa</span>
+            </div>
+            <div class="metric-grid compact" id="pcaMetrics"></div>
+            <div class="dashboard-grid">
+              <article class="panel span-5">
+                <div class="panel-heading">
+                  <div>
+                    <p class="section-kicker">Autovalori</p>
+                    <h3>Scree plot</h3>
+                  </div>
+                </div>
+                <div id="screeChart" class="chart-wrap"></div>
+              </article>
+              <article class="panel span-7">
+                <div class="panel-heading">
+                  <div>
+                    <p class="section-kicker">Prime due componenti</p>
+                    <h3>Mappa degli elementi</h3>
+                  </div>
+                </div>
+                <div id="factorMap" class="chart-wrap"></div>
+              </article>
+            </div>
+            <article class="panel top-gap">
+              <div class="panel-heading">
+                <h3>Carichi dei costrutti</h3>
+                <span class="muted small">Correlazioni approssimate tra costrutti e componenti</span>
+              </div>
+              <div class="table-scroll">
+                <table class="analysis-table" id="loadingsTable"></table>
+              </div>
+            </article>
+          </div>
+
+          <div class="view" id="clustersView">
+            <div class="intro-row">
+              <div>
+                <p class="section-kicker">Somiglianze</p>
+                <h2>Cluster gerarchici</h2>
+                <p class="muted">Distanze euclidee e aggregazione gerarchica per esplorare prossimità e differenze.</p>
+              </div>
+              <div class="inline-actions">
+                <label class="select-label">
+                  Oggetti
+                  <select id="clusterScope">
+                    <option value="elements">Elementi</option>
+                    <option value="constructs">Costrutti</option>
+                  </select>
+                </label>
+                <label class="select-label">
+                  Legame
+                  <select id="clusterLinkage">
+                    <option value="average">Medio</option>
+                    <option value="complete">Completo</option>
+                    <option value="single">Singolo</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="section-kicker">Dendrogramma</p>
+                  <h3 id="dendrogramTitle">Raggruppamento degli elementi</h3>
+                </div>
+              </div>
+              <div id="dendrogram" class="chart-wrap dendrogram-wrap"></div>
+            </article>
+            <article class="panel top-gap">
+              <div class="panel-heading">
+                <h3>Distanze euclidee</h3>
+              </div>
+              <div class="table-scroll">
+                <table class="analysis-table" id="distanceTable"></table>
+              </div>
+            </article>
+          </div>
+
+          <div class="view" id="dataView">
+            <div class="intro-row">
+              <div>
+                <p class="section-kicker">Importazione ed esportazione</p>
+                <h2>Gestione dati</h2>
+                <p class="muted">Lavora in locale e conserva una copia della griglia quando vuoi.</p>
+              </div>
+            </div>
+            <div class="dashboard-grid">
+              <article class="panel span-6">
+                <div class="panel-heading">
+                  <div>
+                    <p class="section-kicker">Carica</p>
+                    <h3>Importa una griglia</h3>
+                  </div>
+                </div>
+                <p class="muted">Sono supportati file CSV e backup JSON creati da questa applicazione.</p>
+                <label class="upload-zone" for="fileInput">
+                  <span class="upload-icon">⇧</span>
+                  <strong>Scegli un file CSV o JSON</strong>
+                  <small>oppure trascinalo qui</small>
+                </label>
+                <input id="fileInput" type="file" accept=".csv,.json,text/csv,application/json" hidden />
+                <button class="secondary-button full-width top-gap-small" id="downloadTemplateBtn">Scarica modello CSV</button>
+              </article>
+              <article class="panel span-6">
+                <div class="panel-heading">
+                  <div>
+                    <p class="section-kicker">Salva</p>
+                    <h3>Esporta la griglia corrente</h3>
+                  </div>
+                </div>
+                <p class="muted">Il backup JSON conserva scala, etichette e punteggi. Il CSV è comodo per Excel o LibreOffice.</p>
+                <div class="export-stack">
+                  <button class="primary-button full-width" id="exportJsonBtn">Esporta backup JSON</button>
+                  <button class="secondary-button full-width" id="exportCsvBtn">Esporta CSV</button>
+                </div>
+              </article>
+              <article class="panel span-12">
+                <div class="panel-heading">
+                  <div>
+                    <p class="section-kicker">Formato CSV</p>
+                    <h3>Struttura attesa</h3>
+                  </div>
+                </div>
+                <div class="csv-example">
+                  <code>polo_sinistro,polo_destro,Io,Partner,Collega ideale<br />Calmo,Ansioso,2,5,1<br />Disponibile,Distante,1,4,2</code>
+                </div>
+                <p class="table-note">La prima riga contiene i nomi degli elementi; ogni riga successiva descrive un costrutto bipolare e i relativi punteggi.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal-backdrop hidden" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="modal">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">Primi passi</p>
+            <h2 id="helpTitle">Come usare Griglia PCP</h2>
+          </div>
+          <button class="icon-button" id="closeHelpBtn" aria-label="Chiudi">×</button>
+        </div>
+        <ol class="help-list">
+          <li><strong>Inserisci o importa</strong> la griglia dalla sezione Dati.</li>
+          <li><strong>Controlla la matrice</strong> e modifica i punteggi nella sezione Griglia.</li>
+          <li><strong>Leggi la dashboard</strong> per una prima sintesi descrittiva e strutturale.</li>
+          <li><strong>Approfondisci</strong> correlazioni, RG Dynamics, PCA e dendrogrammi nelle sezioni dedicate.</li>
+        </ol>
+        <p class="modal-note">Questo strumento supporta l’esplorazione dei dati. L’interpretazione clinica o di ricerca resta responsabilità del professionista.</p>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
