@@ -56,7 +56,7 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    components.html(build_app_html(), height=1850, scrolling=True)
+    components.html(build_app_html(), height=1180, scrolling=True)
 
 
 if __name__ == "__main__":

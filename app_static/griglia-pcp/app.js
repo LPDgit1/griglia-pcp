@@ -1703,7 +1703,6 @@ function buildWordReport() {
       </head>
       <body>
         <h1>Report analisi Griglia PCP</h1>
-        <p class="note"><strong>Luca Pezzullo</strong></p>
         <p class="note">Report generato localmente dal browser. Gli indici RG Dynamics sono operazionalizzazioni quantitative sperimentali.</p>
         <h2>Sintesi descrittiva</h2>
         ${reportTable(["Indicatore", "Valore"], coreRows)}
@@ -1767,7 +1766,6 @@ function buildReportLines(ctx = buildReportContext()) {
   };
   const pcaTwo = (ctx.analysis.pca.explained[0] || 0) + (ctx.analysis.pca.explained[1] || 0);
   add("Report analisi Griglia PCP");
-  add("Luca Pezzullo");
   add(`Griglia: ${state.name}`);
   add(`Generato il: ${ctx.generatedAt}`);
   add(`Elementi: ${state.elements.length} | Costrutti: ${state.constructs.length} | Scala: ${state.scale.min}-${state.scale.max}`);
