@@ -1306,7 +1306,7 @@ function renderClusters() {
   document.getElementById("distanceTable").innerHTML = renderMatrixTable(labels, distanceMatrix, "number");
 }
 
-function renderDendrogram(root, labels) {
+function buildDendrogramModel(root, labels, options = {}) {
   const leaves = [];
   const collectLeaves = (node) => {
     if (node.leaf !== undefined) leaves.push(node);
@@ -1316,18 +1316,18 @@ function renderDendrogram(root, labels) {
     }
   };
   collectLeaves(root);
-  const width = 850;
-  const rowHeight = 38;
-  const top = 24;
-  const labelWidth = 185;
-  const right = 30;
+  const width = options.width || 850;
+  const rowHeight = options.rowHeight || 38;
+  const top = options.top || 24;
+  const labelWidth = options.labelWidth || 185;
+  const right = options.right || 30;
   const height = Math.max(170, leaves.length * rowHeight + 46);
   const maxHeight = root.height || 1;
   const leafY = new Map(leaves.map((leaf, index) => [leaf.leaf, top + index * rowHeight + 10]));
   const xFor = (node) => labelWidth + (node.height / maxHeight) * (width - labelWidth - right);
   const drawNode = (node) => {
     if (node.leaf !== undefined) {
-      return { x: labelWidth, y: leafY.get(node.leaf), svg: "" };
+      return { x: labelWidth, y: leafY.get(node.leaf), segments: [], labels: [] };
     }
     const left = drawNode(node.left);
     const rightNode = drawNode(node.right);
@@ -1336,23 +1336,54 @@ function renderDendrogram(root, labels) {
     return {
       x,
       y,
-      svg: `${left.svg}${rightNode.svg}
-        <line x1="${left.x}" y1="${left.y}" x2="${x}" y2="${left.y}" stroke="#4f7772" stroke-width="1.7" />
-        <line x1="${rightNode.x}" y1="${rightNode.y}" x2="${x}" y2="${rightNode.y}" stroke="#4f7772" stroke-width="1.7" />
-        <line x1="${x}" y1="${left.y}" x2="${x}" y2="${rightNode.y}" stroke="#4f7772" stroke-width="1.7" />
-        <text x="${x + 4}" y="${y - 5}" font-size="9" fill="#9a6a3c">${fmtSmart(node.height, 1)}</text>`,
+      segments: [
+        ...left.segments,
+        ...rightNode.segments,
+        { x1: left.x, y1: left.y, x2: x, y2: left.y },
+        { x1: rightNode.x, y1: rightNode.y, x2: x, y2: rightNode.y },
+        { x1: x, y1: left.y, x2: x, y2: rightNode.y },
+      ],
+      labels: [
+        ...left.labels,
+        ...rightNode.labels,
+        { x: x + 4, y: y - 5, text: fmtSmart(node.height, 1), kind: "distance" },
+      ],
     };
   };
   const tree = drawNode(root);
+  return {
+    width,
+    height,
+    labelWidth,
+    right,
+    maxHeight,
+    leaves: leaves.map((leaf) => ({
+      index: leaf.leaf,
+      label: labels[leaf.leaf],
+      y: leafY.get(leaf.leaf),
+    })),
+    segments: tree.segments,
+    labels: tree.labels,
+  };
+}
+
+function renderDendrogramSvg(model) {
   return `
-    <svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="Dendrogramma gerarchico">
-      ${leaves.map((leaf) => `
-        <text x="3" y="${leafY.get(leaf.leaf) + 4}" font-size="11" fill="#48625f">${escapeHtml(shorten(labels[leaf.leaf], 29))}</text>
-        <circle cx="${labelWidth}" cy="${leafY.get(leaf.leaf)}" r="3" fill="#d39152" />`).join("")}
-      ${tree.svg}
-      <text x="${labelWidth}" y="${height - 10}" font-size="10" fill="#6e7c79">0</text>
-      <text x="${width - right}" y="${height - 10}" text-anchor="end" font-size="10" fill="#6e7c79">${fmtSmart(maxHeight, 1)} distanza</text>
+    <svg viewBox="0 0 ${model.width} ${model.height}" width="${model.width}" height="${model.height}" role="img" aria-label="Dendrogramma gerarchico">
+      ${model.leaves.map((leaf) => `
+        <text x="3" y="${leaf.y + 4}" font-size="11" fill="#48625f">${escapeHtml(shorten(leaf.label, 29))}</text>
+        <circle cx="${model.labelWidth}" cy="${leaf.y}" r="3" fill="#d39152" />`).join("")}
+      ${model.segments.map((segment) => `
+        <line x1="${segment.x1}" y1="${segment.y1}" x2="${segment.x2}" y2="${segment.y2}" stroke="#4f7772" stroke-width="1.7" />`).join("")}
+      ${model.labels.map((label) => `
+        <text x="${label.x}" y="${label.y}" font-size="9" fill="#9a6a3c">${escapeHtml(label.text)}</text>`).join("")}
+      <text x="${model.labelWidth}" y="${model.height - 10}" font-size="10" fill="#6e7c79">0</text>
+      <text x="${model.width - model.right}" y="${model.height - 10}" text-anchor="end" font-size="10" fill="#6e7c79">${fmtSmart(model.maxHeight, 1)} distanza</text>
     </svg>`;
+}
+
+function renderDendrogram(root, labels) {
+  return renderDendrogramSvg(buildDendrogramModel(root, labels));
 }
 
 function renderAll() {
@@ -1536,6 +1567,21 @@ function reportConstructLabel(index) {
   return `${construct.left} ↔ ${construct.right}`;
 }
 
+function buildReportDendrogram(scope) {
+  const vectors = getVectors(scope);
+  const labels = getLabels(scope);
+  if (vectors.length < 2) return null;
+  return {
+    title: scope === "elements" ? "Dendrogramma degli elementi" : "Dendrogramma dei costrutti",
+    model: buildDendrogramModel(hierarchicalCluster(vectors, "average"), labels, {
+      width: 760,
+      rowHeight: 34,
+      labelWidth: scope === "elements" ? 150 : 210,
+      right: 24,
+    }),
+  };
+}
+
 function reportTable(headers, rows) {
   return `<table>
     <thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>
@@ -1558,6 +1604,7 @@ function buildReportContext() {
   const selectivePolarization = [...dynamics.constructProfiles]
     .sort((a, b) => b.spi - a.spi)
     .slice(0, 10);
+  const reportDendrograms = [buildReportDendrogram("elements"), buildReportDendrogram("constructs")].filter(Boolean);
   return {
     analysis,
     dynamics,
@@ -1566,6 +1613,7 @@ function buildReportContext() {
     centralConstructs,
     readiness,
     selectivePolarization,
+    reportDendrograms,
   };
 }
 
@@ -1650,10 +1698,12 @@ function buildWordReport() {
           th, td { border: 1px solid #cfd5cf; padding: 7px 8px; font-size: 11px; vertical-align: top; }
           th { background: #dcece7; text-align: left; }
           .note { color: #6e7c79; font-size: 11px; }
+          .dendrogram svg { max-width: 100%; height: auto; border: 1px solid #e3e3dc; margin: 8px 0 18px; }
         </style>
       </head>
       <body>
         <h1>Report analisi Griglia PCP</h1>
+        <p class="note"><strong>Luca Pezzullo</strong></p>
         <p class="note">Report generato localmente dal browser. Gli indici RG Dynamics sono operazionalizzazioni quantitative sperimentali.</p>
         <h2>Sintesi descrittiva</h2>
         ${reportTable(["Indicatore", "Valore"], coreRows)}
@@ -1669,6 +1719,11 @@ function buildWordReport() {
         ${reportTable(["Costrutto", "CPP", "CTR", "MESI", "Target"], readinessRows)}
         <h2>Polarizzazione selettiva</h2>
         ${reportTable(["Costrutto", "SPI", "Differenziazione", "Ridondanza"], selectiveRows)}
+        <h2>Dendrogrammi</h2>
+        ${ctx.reportDendrograms.map((item) => `
+          <h3>${escapeHtml(item.title)}</h3>
+          <div class="dendrogram">${renderDendrogramSvg(item.model)}</div>
+        `).join("")}
       </body>
     </html>`;
 }
@@ -1702,8 +1757,7 @@ function wrapReportLine(text, width = 94) {
   return lines.length ? lines : [""];
 }
 
-function buildReportLines() {
-  const ctx = buildReportContext();
+function buildReportLines(ctx = buildReportContext()) {
   const lines = [];
   const add = (text = "") => lines.push(...wrapReportLine(text));
   const section = (title) => {
@@ -1713,6 +1767,7 @@ function buildReportLines() {
   };
   const pcaTwo = (ctx.analysis.pca.explained[0] || 0) + (ctx.analysis.pca.explained[1] || 0);
   add("Report analisi Griglia PCP");
+  add("Luca Pezzullo");
   add(`Griglia: ${state.name}`);
   add(`Generato il: ${ctx.generatedAt}`);
   add(`Elementi: ${state.elements.length} | Costrutti: ${state.constructs.length} | Scala: ${state.scale.min}-${state.scale.max}`);
@@ -1764,8 +1819,50 @@ function pdfEscape(text) {
   return asciiReportText(text).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }
 
+function pdfTextCommand(text, x, y, size = 8) {
+  return `BT /F1 ${size} Tf ${x.toFixed(2)} ${y.toFixed(2)} Td (${pdfEscape(text)}) Tj ET`;
+}
+
+function buildPdfDendrogramStream(item) {
+  const pageWidth = 595;
+  const pageHeight = 842;
+  const margin = 42;
+  const titleY = pageHeight - margin;
+  const topOffset = 44;
+  const model = item.model;
+  const scale = Math.min(
+    (pageWidth - margin * 2) / model.width,
+    (pageHeight - margin * 2 - topOffset) / model.height,
+  );
+  const originX = margin;
+  const originY = pageHeight - margin - topOffset;
+  const x = (value) => originX + value * scale;
+  const y = (value) => originY - value * scale;
+  const commands = [
+    pdfTextCommand(item.title, margin, titleY, 14),
+    pdfTextCommand(`Legame medio - distanza massima ${fmtSmart(model.maxHeight, 1)}`, margin, titleY - 18, 8),
+    "0.31 0.47 0.45 RG 1.15 w",
+    ...model.segments.map((segment) =>
+      `${x(segment.x1).toFixed(2)} ${y(segment.y1).toFixed(2)} m ${x(segment.x2).toFixed(2)} ${y(segment.y2).toFixed(2)} l S`,
+    ),
+    "0.82 0.55 0.30 rg",
+    ...model.leaves.map((leaf) => {
+      const px = x(model.labelWidth);
+      const py = y(leaf.y);
+      return `${(px - 1.7).toFixed(2)} ${(py - 1.7).toFixed(2)} 3.4 3.4 re f`;
+    }),
+    "0 0 0 rg",
+    ...model.leaves.map((leaf) => pdfTextCommand(shorten(leaf.label, 38), originX, y(leaf.y) - 2, 7.5)),
+    ...model.labels.map((label) => pdfTextCommand(label.text, x(label.x), y(label.y), 6.5)),
+    pdfTextCommand("0", x(model.labelWidth), pageHeight - margin - topOffset - model.height * scale - 12, 7),
+    pdfTextCommand(`${fmtSmart(model.maxHeight, 1)} distanza`, x(model.width - model.right) - 48, pageHeight - margin - topOffset - model.height * scale - 12, 7),
+  ];
+  return commands.join("\n");
+}
+
 function buildPdfBlob() {
-  const wrappedLines = buildReportLines();
+  const ctx = buildReportContext();
+  const wrappedLines = buildReportLines(ctx);
   const pageHeight = 842;
   const margin = 48;
   const leading = 15;
@@ -1789,6 +1886,13 @@ function buildPdfBlob() {
     const stream = `BT /F1 10 Tf ${margin} ${pageHeight - margin} Td ${leading} TL\n${
       pageLines.map((line) => `(${pdfEscape(line)}) Tj T*`).join("\n")
     }\nET`;
+    const contentId = addObject(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+    const pageId = addObject(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`);
+    pageIds.push(pageId);
+  });
+
+  ctx.reportDendrograms.forEach((item) => {
+    const stream = buildPdfDendrogramStream(item);
     const contentId = addObject(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
     const pageId = addObject(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`);
     pageIds.push(pageId);
