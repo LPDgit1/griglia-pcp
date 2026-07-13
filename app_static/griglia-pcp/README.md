@@ -20,6 +20,7 @@ Poi visitare `http://localhost:4173`.
 - Aggiunta e rimozione di elementi e costrutti bipolari.
 - Importazione ed esportazione CSV.
 - Backup e ripristino JSON.
+- Esportazione dei risultati principali in report Word e PDF dalla sezione Dati.
 - Statistiche descrittive e distribuzione dei punteggi.
 - Polarizzazione, uso del punto medio, intensità correlazionale, differenziazione di Bieri e differenziazione basata sulle distanze.
 - Correlazioni Pearson tra costrutti o elementi.

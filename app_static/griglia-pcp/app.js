@@ -1508,8 +1508,7 @@ function csvEscape(value) {
   return /[",;\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
-function downloadText(fileName, content, type) {
-  const blob = new Blob([content], { type });
+function downloadBlob(fileName, blob) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -1520,12 +1519,297 @@ function downloadText(fileName, content, type) {
   URL.revokeObjectURL(url);
 }
 
+function downloadText(fileName, content, type) {
+  downloadBlob(fileName, new Blob([content], { type }));
+}
+
 function stateToCsv(grid) {
   const rows = [
     ["polo_sinistro", "polo_destro", ...grid.elements],
     ...grid.constructs.map((construct) => [construct.left, construct.right, ...construct.values]),
   ];
   return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+}
+
+function reportConstructLabel(index) {
+  const construct = state.constructs[index];
+  return `${construct.left} ↔ ${construct.right}`;
+}
+
+function reportTable(headers, rows) {
+  return `<table>
+    <thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
+  </table>`;
+}
+
+function buildReportContext() {
+  const analysis = calculateAnalysis();
+  const dynamics = calculateDynamics(analysis);
+  const strongCorrelations = [...analysis.pairCorrelations]
+    .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
+    .slice(0, 10);
+  const centralConstructs = [...dynamics.constructProfiles]
+    .sort((a, b) => b.centrality - a.centrality)
+    .slice(0, 10);
+  const readiness = [...dynamics.constructProfiles]
+    .sort((a, b) => b.mesi - a.mesi)
+    .slice(0, 10);
+  const selectivePolarization = [...dynamics.constructProfiles]
+    .sort((a, b) => b.spi - a.spi)
+    .slice(0, 10);
+  return {
+    analysis,
+    dynamics,
+    generatedAt: new Date().toLocaleString("it-IT"),
+    strongCorrelations,
+    centralConstructs,
+    readiness,
+    selectivePolarization,
+  };
+}
+
+function buildWordReport() {
+  const ctx = buildReportContext();
+  const pcaTwo = (ctx.analysis.pca.explained[0] || 0) + (ctx.analysis.pca.explained[1] || 0);
+  const safeCorridor = ctx.dynamics.safeChangeCorridor === null ? "non calcolabile" : `${fmt(ctx.dynamics.safeChangeCorridor)}%`;
+  const selfIdeal = ctx.dynamics.selfGeometry.selfIdeal
+    ? `${fmt(ctx.dynamics.selfGeometry.selfIdeal.proximity)}%`
+    : "non calcolabile";
+  const coreRows = [
+    ["Griglia", state.name],
+    ["Generato il", ctx.generatedAt],
+    ["Elementi", String(state.elements.length)],
+    ["Costrutti", String(state.constructs.length)],
+    ["Scala", `${state.scale.min}–${state.scale.max}`],
+    ["Media rating", fmt(ctx.analysis.average)],
+    ["Deviazione standard", fmt(ctx.analysis.standardDeviation)],
+    ["Polarizzazione globale", `${fmt(ctx.analysis.polarization)}%`],
+    ["Uso del punto medio", `${fmt(ctx.analysis.midpointUse)}%`],
+    ["Differenziazione di Bieri", `${fmt(ctx.analysis.bieriDifferentiation)}%`],
+    ["Intensità correlazionale", `${fmt(ctx.analysis.intensity)}%`],
+    ["PCA C1", `${fmt(ctx.analysis.pca.explained[0] || 0)}%`],
+    ["PCA C1+C2", `${fmt(pcaTwo)}%`],
+  ];
+  const dynamicsRows = [
+    ["Construct System Entropy", `${fmt(ctx.dynamics.cse)}%`],
+    ["Construct Redundancy Compression Index C1", `${fmt(ctx.dynamics.crci1)}%`],
+    ["Construct Redundancy Compression Index C1+C2", `${fmt(ctx.dynamics.crci2)}%`],
+    ["Construct Orthogonality Index", `${fmt(ctx.dynamics.coi)}%`],
+    ["Construct Load Concentration Index", `${fmt(ctx.dynamics.clci)}%`],
+    ["Implicative Dilemma Density", `${fmt(ctx.dynamics.dilemmaDensity)}%`],
+    ["Safe Change Corridor Index", safeCorridor],
+    ["Self-Ideal Congruence", selfIdeal],
+  ];
+  const correlationRows = ctx.strongCorrelations.map((item) => [
+    reportConstructLabel(item.first),
+    reportConstructLabel(item.second),
+    fmtSmart(item.value),
+  ]);
+  const centralityRows = ctx.centralConstructs.map((profile) => [
+    reportConstructLabel(profile.index),
+    `${fmt(profile.centrality * 100)}%`,
+    `${fmt(profile.bridge * 100)}%`,
+    `${fmt(profile.fragility * 100)}%`,
+    `${fmt(profile.instability * 100)}%`,
+  ]);
+  const readinessRows = ctx.readiness.map((profile) => [
+    reportConstructLabel(profile.index),
+    `${fmt(profile.cpp * 100)}%`,
+    `${fmt(profile.ctr * 100)}%`,
+    `${fmt(profile.mesi * 100)}%`,
+    profile.direction,
+  ]);
+  const changeCostRows = ctx.dynamics.changeCosts.length
+    ? ctx.dynamics.changeCosts.map((entry) => [
+      reportConstructLabel(entry.index),
+      entry.direction,
+      `${fmt(entry.benefit * 100)}%`,
+      `${fmt(entry.risk * 100)}%`,
+      `${fmt(entry.safety * 100)}%`,
+    ])
+    : [["Nessun costrutto discrepante o ruoli sé/ideale non disponibili", "", "", "", ""]];
+  const selectiveRows = ctx.selectivePolarization.map((profile) => [
+    reportConstructLabel(profile.index),
+    `${fmt(profile.spi * 100)}%`,
+    `${fmt(profile.differentiation * 100)}%`,
+    `${fmt(profile.redundancy * 100)}%`,
+  ]);
+
+  return `<!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Report Griglia PCP</title>
+        <style>
+          body { font-family: Arial, sans-serif; color: #20302f; line-height: 1.45; }
+          h1, h2 { color: #184e49; }
+          h1 { font-size: 26px; }
+          h2 { margin-top: 28px; font-size: 18px; }
+          table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; }
+          th, td { border: 1px solid #cfd5cf; padding: 7px 8px; font-size: 11px; vertical-align: top; }
+          th { background: #dcece7; text-align: left; }
+          .note { color: #6e7c79; font-size: 11px; }
+        </style>
+      </head>
+      <body>
+        <h1>Report analisi Griglia PCP</h1>
+        <p class="note">Report generato localmente dal browser. Gli indici RG Dynamics sono operazionalizzazioni quantitative sperimentali.</p>
+        <h2>Sintesi descrittiva</h2>
+        ${reportTable(["Indicatore", "Valore"], coreRows)}
+        <h2>RG Dynamics</h2>
+        ${reportTable(["Indicatore", "Valore"], dynamicsRows)}
+        <h2>Correlazioni più forti tra costrutti</h2>
+        ${reportTable(["Costrutto A", "Costrutto B", "r"], correlationRows)}
+        <h2>Centralità, bridge, fragilità e instabilità</h2>
+        ${reportTable(["Costrutto", "Centralità", "Bridge", "Fragilità", "Instabilità"], centralityRows)}
+        <h2>Costo del cambiamento</h2>
+        ${reportTable(["Costrutto", "Direzione", "Beneficio", "Rischio", "Sicurezza"], changeCostRows)}
+        <h2>Readiness e micro-esperimenti</h2>
+        ${reportTable(["Costrutto", "CPP", "CTR", "MESI", "Target"], readinessRows)}
+        <h2>Polarizzazione selettiva</h2>
+        ${reportTable(["Costrutto", "SPI", "Differenziazione", "Ridondanza"], selectiveRows)}
+      </body>
+    </html>`;
+}
+
+function asciiReportText(value) {
+  return String(value ?? "")
+    .replaceAll("↔", "<->")
+    .replaceAll("–", "-")
+    .replaceAll("—", "-")
+    .replaceAll("×", "x")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x20-\x7E]/g, " ");
+}
+
+function wrapReportLine(text, width = 94) {
+  const clean = asciiReportText(text);
+  const words = clean.split(/\s+/);
+  const lines = [];
+  let current = "";
+  words.forEach((word) => {
+    if (!word) return;
+    if ((current + " " + word).trim().length > width) {
+      if (current) lines.push(current);
+      current = word;
+    } else {
+      current = (current + " " + word).trim();
+    }
+  });
+  if (current) lines.push(current);
+  return lines.length ? lines : [""];
+}
+
+function buildReportLines() {
+  const ctx = buildReportContext();
+  const lines = [];
+  const add = (text = "") => lines.push(...wrapReportLine(text));
+  const section = (title) => {
+    lines.push("");
+    add(title.toUpperCase());
+    lines.push("-".repeat(Math.min(72, title.length + 8)));
+  };
+  const pcaTwo = (ctx.analysis.pca.explained[0] || 0) + (ctx.analysis.pca.explained[1] || 0);
+  add("Report analisi Griglia PCP");
+  add(`Griglia: ${state.name}`);
+  add(`Generato il: ${ctx.generatedAt}`);
+  add(`Elementi: ${state.elements.length} | Costrutti: ${state.constructs.length} | Scala: ${state.scale.min}-${state.scale.max}`);
+  section("Sintesi descrittiva");
+  [
+    `Media rating: ${fmt(ctx.analysis.average)}`,
+    `Deviazione standard: ${fmt(ctx.analysis.standardDeviation)}`,
+    `Polarizzazione globale: ${fmt(ctx.analysis.polarization)}%`,
+    `Uso del punto medio: ${fmt(ctx.analysis.midpointUse)}%`,
+    `Differenziazione di Bieri: ${fmt(ctx.analysis.bieriDifferentiation)}%`,
+    `Intensita correlazionale: ${fmt(ctx.analysis.intensity)}%`,
+    `PCA C1: ${fmt(ctx.analysis.pca.explained[0] || 0)}% | PCA C1+C2: ${fmt(pcaTwo)}%`,
+  ].forEach(add);
+  section("RG Dynamics");
+  [
+    `CSE: ${fmt(ctx.dynamics.cse)}%`,
+    `CRCI C1: ${fmt(ctx.dynamics.crci1)}% | CRCI C1+C2: ${fmt(ctx.dynamics.crci2)}%`,
+    `COI: ${fmt(ctx.dynamics.coi)}% | CLCI: ${fmt(ctx.dynamics.clci)}%`,
+    `IDD: ${fmt(ctx.dynamics.dilemmaDensity)}%`,
+    `SCCI: ${ctx.dynamics.safeChangeCorridor === null ? "non calcolabile" : `${fmt(ctx.dynamics.safeChangeCorridor)}%`}`,
+  ].forEach(add);
+  if (ctx.dynamics.selfGeometry.selfIdeal) {
+    add(`Self-Ideal Congruence: ${fmt(ctx.dynamics.selfGeometry.selfIdeal.proximity)}%`);
+  }
+  section("Correlazioni piu forti");
+  ctx.strongCorrelations.forEach((item, index) => {
+    add(`${index + 1}. ${reportConstructLabel(item.first)} / ${reportConstructLabel(item.second)}: r=${fmtSmart(item.value)}`);
+  });
+  section("Centralita e fragilita");
+  ctx.centralConstructs.forEach((profile, index) => {
+    add(`${index + 1}. ${reportConstructLabel(profile.index)} | centralita ${fmt(profile.centrality * 100)}% | bridge ${fmt(profile.bridge * 100)}% | fragilita ${fmt(profile.fragility * 100)}% | instabilita ${fmt(profile.instability * 100)}%`);
+  });
+  section("Costo del cambiamento");
+  if (ctx.dynamics.changeCosts.length) {
+    ctx.dynamics.changeCosts.forEach((entry, index) => {
+      add(`${index + 1}. ${reportConstructLabel(entry.index)} | ${entry.direction} | beneficio ${fmt(entry.benefit * 100)}% | rischio ${fmt(entry.risk * 100)}% | sicurezza ${fmt(entry.safety * 100)}%`);
+    });
+  } else {
+    add("Nessun costrutto discrepante o ruoli se/ideale non disponibili.");
+  }
+  section("Readiness e micro-esperimenti");
+  ctx.readiness.forEach((profile, index) => {
+    add(`${index + 1}. ${reportConstructLabel(profile.index)} | CPP ${fmt(profile.cpp * 100)}% | CTR ${fmt(profile.ctr * 100)}% | MESI ${fmt(profile.mesi * 100)}% | ${profile.direction}`);
+  });
+  return lines;
+}
+
+function pdfEscape(text) {
+  return asciiReportText(text).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+}
+
+function buildPdfBlob() {
+  const wrappedLines = buildReportLines();
+  const pageHeight = 842;
+  const margin = 48;
+  const leading = 15;
+  const maxLines = Math.floor((pageHeight - margin * 2) / leading);
+  const pages = [];
+  for (let index = 0; index < wrappedLines.length; index += maxLines) {
+    pages.push(wrappedLines.slice(index, index + maxLines));
+  }
+
+  const objects = [];
+  const addObject = (body) => {
+    objects.push(body);
+    return objects.length;
+  };
+  const catalogId = addObject("<< /Type /Catalog /Pages 2 0 R >>");
+  const pagesId = addObject("");
+  const fontId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+  const pageIds = [];
+
+  pages.forEach((pageLines) => {
+    const stream = `BT /F1 10 Tf ${margin} ${pageHeight - margin} Td ${leading} TL\n${
+      pageLines.map((line) => `(${pdfEscape(line)}) Tj T*`).join("\n")
+    }\nET`;
+    const contentId = addObject(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+    const pageId = addObject(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`);
+    pageIds.push(pageId);
+  });
+
+  objects[pagesId - 1] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageIds.length} >>`;
+
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((body, index) => {
+    offsets[index + 1] = pdf.length;
+    pdf += `${index + 1} 0 obj\n${body}\nendobj\n`;
+  });
+  const xrefOffset = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (let id = 1; id <= objects.length; id += 1) {
+    pdf += `${String(offsets[id]).padStart(10, "0")} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+
+  return new Blob([pdf], { type: "application/pdf" });
 }
 
 function bindEvents() {
@@ -1542,11 +1826,6 @@ function bindEvents() {
   document.getElementById("correlationScope").addEventListener("change", () => renderCorrelations(calculateAnalysis()));
   document.getElementById("clusterScope").addEventListener("change", renderClusters);
   document.getElementById("clusterLinkage").addEventListener("change", renderClusters);
-  document.getElementById("loadDemoBtn").addEventListener("click", () => {
-    state = normalizeGrid(demoGrid);
-    renderAll();
-    showToast("Griglia dimostrativa ripristinata.");
-  });
   document.getElementById("gridEditorTable").addEventListener("change", (event) => {
     const target = event.target;
     if (target.dataset.scoreRow !== undefined) {
@@ -1600,6 +1879,14 @@ function bindEvents() {
   document.getElementById("exportCsvBtn").addEventListener("click", () => {
     downloadText("griglia-pcp.csv", stateToCsv(state), "text/csv;charset=utf-8");
     showToast("CSV esportato.");
+  });
+  document.getElementById("exportWordReportBtn").addEventListener("click", () => {
+    downloadText("report-griglia-pcp.doc", buildWordReport(), "application/msword;charset=utf-8");
+    showToast("Report Word scaricato.");
+  });
+  document.getElementById("exportPdfReportBtn").addEventListener("click", () => {
+    downloadBlob("report-griglia-pcp.pdf", buildPdfBlob());
+    showToast("Report PDF scaricato.");
   });
   document.getElementById("downloadTemplateBtn").addEventListener("click", () => {
     const template = [
