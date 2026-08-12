@@ -50,7 +50,13 @@ test("ships the complete static application and social preview", async () => {
   assert.match(appHtml, /data-view="dynamics"/);
   assert.match(appHtml, /Sperimentale/);
   assert.match(appHtml, /id="gridNameInput"/);
+  assert.match(appHtml, /id="dashboardGridNameInput"/);
+  assert.match(appHtml, /By Luca Pezzullo, 2026/);
+  assert.match(appHtml, /id="exportDendrogramJpgBtn"/);
   assert.match(appScript, /Nome della griglia aggiornato/);
+  assert.match(appScript, /name: "Griglia senza titolo"/);
+  assert.match(appScript, /function svgToJpegBlob/);
+  assert.match(appScript, /"image\/jpeg", 0\.95/);
   await access(new URL("../public/griglia-pcp/styles.css", import.meta.url));
   await access(new URL("../public/og.png", import.meta.url));
   await assert.rejects(access(new URL("../app/_sites-preview", import.meta.url)));

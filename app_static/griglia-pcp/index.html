@@ -20,7 +20,7 @@
           <div>
             <strong>Griglia PCP</strong>
             <small>Repertory Grid Studio</small>
-            <small class="brand-author">Luca Pezzullo</small>
+            <small class="brand-author">By Luca Pezzullo, 2026</small>
           </div>
         </div>
 
@@ -71,7 +71,7 @@
             <h1 id="viewTitle">Dashboard</h1>
           </div>
           <div class="top-actions">
-            <span class="grid-name" id="gridNameLabel">Griglia demo</span>
+            <span class="grid-name" id="gridNameLabel">Griglia senza titolo</span>
             <button class="secondary-button" id="openImportBtn">Importa</button>
             <button class="primary-button" data-view-target="grid">Modifica griglia</button>
           </div>
@@ -82,7 +82,10 @@
             <div class="intro-row">
               <div>
                 <p class="section-kicker">Quadro sintetico</p>
-                <h2 id="dashboardHeading">Profilo della griglia</h2>
+                <label class="dashboard-name-control" for="dashboardGridNameInput">
+                  <span>Nome della griglia</span>
+                  <input id="dashboardGridNameInput" type="text" maxlength="120" autocomplete="off" placeholder="Griglia senza titolo" />
+                </label>
                 <p class="muted" id="dashboardSubtitle"></p>
               </div>
             </div>
@@ -362,6 +365,7 @@
                   <p class="section-kicker">Dendrogramma</p>
                   <h3 id="dendrogramTitle">Raggruppamento degli elementi</h3>
                 </div>
+                <button class="secondary-button" id="exportDendrogramJpgBtn">Scarica JPG</button>
               </div>
               <div id="dendrogram" class="chart-wrap dendrogram-wrap"></div>
             </article>

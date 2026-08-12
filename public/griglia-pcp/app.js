@@ -9,9 +9,10 @@ const VIEW_META = {
 };
 
 const STORAGE_KEY = "griglia-pcp-v1";
+const LEGACY_DEMO_NAMES = new Set(["Esempio: relazioni professionali", "Griglia demo"]);
 
 const demoGrid = {
-  name: "Esempio: relazioni professionali",
+  name: "Griglia senza titolo",
   scale: { min: 1, max: 7 },
   elements: ["Io", "Io ideale", "Responsabile", "Collega A", "Collega B", "Amico", "Mentore"],
   constructs: [
@@ -119,6 +120,7 @@ function correlationMatrix(vectors) {
 function normalizeGrid(input) {
   const grid = deepClone(input || demoGrid);
   grid.name = String(grid.name || "Griglia senza titolo");
+  if (LEGACY_DEMO_NAMES.has(grid.name.trim())) grid.name = "Griglia senza titolo";
   grid.scale = grid.scale || { min: 1, max: 7 };
   grid.scale.min = safeNumber(grid.scale.min, 1);
   grid.scale.max = safeNumber(grid.scale.max, 7);
@@ -791,7 +793,8 @@ function insightCard(title, text, tone = "") {
 
 function renderDashboard(analysis) {
   document.getElementById("gridNameLabel").textContent = state.name;
-  document.getElementById("dashboardHeading").textContent = state.name;
+  const dashboardNameInput = document.getElementById("dashboardGridNameInput");
+  if (document.activeElement !== dashboardNameInput) dashboardNameInput.value = state.name;
   document.getElementById("dashboardSubtitle").textContent =
     `${state.constructs.length} costrutti bipolari × ${state.elements.length} elementi · scala ${state.scale.min}–${state.scale.max}`;
   document.getElementById("mainMetrics").innerHTML = [
@@ -1387,6 +1390,65 @@ function renderDendrogram(root, labels) {
   return renderDendrogramSvg(buildDendrogramModel(root, labels));
 }
 
+function fileNamePart(value) {
+  return String(value || "griglia")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "griglia";
+}
+
+function svgToJpegBlob(svg, scale = 2) {
+  return new Promise((resolve, reject) => {
+    const viewBox = svg.viewBox.baseVal;
+    const width = Math.max(1, viewBox.width || Number(svg.getAttribute("width")) || 840);
+    const height = Math.max(1, viewBox.height || Number(svg.getAttribute("height")) || 340);
+    let source = new XMLSerializer().serializeToString(svg);
+    if (!source.includes('xmlns="http://www.w3.org/2000/svg"')) {
+      source = source.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    const svgUrl = URL.createObjectURL(new Blob([source], { type: "image/svg+xml;charset=utf-8" }));
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(width * scale);
+      canvas.height = Math.round(height * scale);
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(svgUrl);
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Conversione JPG non riuscita."));
+      }, "image/jpeg", 0.95);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(svgUrl);
+      reject(new Error("Immagine del dendrogramma non disponibile."));
+    };
+    image.src = svgUrl;
+  });
+}
+
+async function exportCurrentDendrogramJpg() {
+  const svg = document.querySelector("#dendrogram svg");
+  if (!svg) {
+    showToast("Dendrogramma non disponibile.", "error");
+    return;
+  }
+  const scope = document.getElementById("clusterScope").value;
+  const scopeName = scope === "elements" ? "elementi" : "costrutti";
+  try {
+    const blob = await svgToJpegBlob(svg);
+    downloadBlob(`dendrogramma-${scopeName}-${fileNamePart(state.name)}.jpg`, blob);
+    showToast("Dendrogramma JPG scaricato.");
+  } catch (error) {
+    showToast(error.message || "Esportazione JPG non riuscita.", "error");
+  }
+}
+
 function renderAll() {
   const analysis = calculateAnalysis();
   renderDashboard(analysis);
@@ -1924,20 +1986,24 @@ function bindEvents() {
   });
   document.getElementById("addElementBtn").addEventListener("click", addElement);
   document.getElementById("addConstructBtn").addEventListener("click", addConstruct);
-  const gridNameInput = document.getElementById("gridNameInput");
-  gridNameInput.addEventListener("change", () => {
-    state.name = gridNameInput.value.trim() || "Griglia senza titolo";
-    renderAll();
-    showToast("Nome della griglia aggiornato.");
-  });
-  gridNameInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") gridNameInput.blur();
-  });
+  const bindGridNameInput = (input) => {
+    input.addEventListener("change", () => {
+      state.name = input.value.trim() || "Griglia senza titolo";
+      renderAll();
+      showToast("Nome della griglia aggiornato.");
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") input.blur();
+    });
+  };
+  bindGridNameInput(document.getElementById("dashboardGridNameInput"));
+  bindGridNameInput(document.getElementById("gridNameInput"));
   document.getElementById("scaleMin").addEventListener("change", updateScale);
   document.getElementById("scaleMax").addEventListener("change", updateScale);
   document.getElementById("correlationScope").addEventListener("change", () => renderCorrelations(calculateAnalysis()));
   document.getElementById("clusterScope").addEventListener("change", renderClusters);
   document.getElementById("clusterLinkage").addEventListener("change", renderClusters);
+  document.getElementById("exportDendrogramJpgBtn").addEventListener("click", exportCurrentDendrogramJpg);
   document.getElementById("gridEditorTable").addEventListener("change", (event) => {
     const target = event.target;
     if (target.dataset.scoreRow !== undefined) {
