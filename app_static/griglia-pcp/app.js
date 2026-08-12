@@ -1444,22 +1444,21 @@ function openPanelWindow(selector, title) {
     showToast(`${title} non disponibile.`, "error");
     return;
   }
-  const popup = window.open("", "_blank", "popup,width=1180,height=820,resizable=yes,scrollbars=yes");
-  if (!popup) {
-    showToast("La finestra separata è stata bloccata dal browser.", "error");
-    return;
-  }
-  const stylesheetHref = escapeHtml(new URL("styles.css", document.baseURI).href);
+  const stylesheetText = Array.from(document.styleSheets).flatMap((sheet) => {
+    try {
+      return Array.from(sheet.cssRules, (rule) => rule.cssText);
+    } catch {
+      return [];
+    }
+  }).join("\n");
   const contentClasses = escapeHtml(Array.from(source.classList).join(" "));
-  popup.document.open();
-  popup.document.write(`<!doctype html>
+  const popupHtml = `<!doctype html>
     <html lang="it">
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>${escapeHtml(title)} · Griglia PCP</title>
-        <link rel="stylesheet" href="${stylesheetHref}" />
-        <style>
+        <style>${stylesheetText}
           body { min-width: 0; margin: 0; padding: 24px; background: #f1eee5; }
           .popup-shell { max-width: 1440px; margin: 0 auto; padding: 24px; border: 1px solid #d9dfd8; border-radius: 16px; background: #fffefa; box-shadow: 0 18px 50px rgba(35, 55, 50, 0.12); }
           .popup-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
@@ -1469,6 +1468,7 @@ function openPanelWindow(selector, title) {
           .popup-content.chart-wrap { min-height: 0; overflow: visible; }
           .popup-content.chart-wrap svg { width: auto; max-width: none !important; height: auto; }
           .popup-content table { width: 100%; }
+          .popup-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
           @media (max-width: 700px) { body { padding: 10px; } .popup-shell { padding: 15px; } .popup-heading { display: block; } .popup-heading button { margin-top: 12px; } }
         </style>
       </head>
@@ -1476,13 +1476,82 @@ function openPanelWindow(selector, title) {
         <main class="popup-shell">
           <div class="popup-heading">
             <div><p class="popup-kicker">Visualizzazione separata</p><h1>${escapeHtml(title)}</h1></div>
-            <button class="secondary-button" type="button" onclick="window.print()">Stampa / PDF</button>
+            <div class="popup-actions">
+              <button class="secondary-button" type="button" id="popupJpgBtn">Scarica JPG</button>
+              <button class="secondary-button" type="button" onclick="window.print()">Stampa / PDF</button>
+            </div>
           </div>
           <div class="popup-content ${contentClasses}">${source.innerHTML}</div>
         </main>
       </body>
-    </html>`);
-  popup.document.close();
+      <script>
+        function popupDownload(name, blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = name;
+          document.body.append(link);
+          link.click();
+          link.remove();
+          window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function popupSvgToJpeg(svg, scale) {
+          return new Promise((resolve, reject) => {
+            const values = (svg.getAttribute("viewBox") || "0 0 840 340").split(/\\s+/).map(Number);
+            const width = Math.max(1, values[2] || Number(svg.getAttribute("width")) || 840);
+            const height = Math.max(1, values[3] || Number(svg.getAttribute("height")) || 340);
+            let source = new XMLSerializer().serializeToString(svg);
+            if (!source.includes('xmlns="http://www.w3.org/2000/svg"')) source = source.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+            const url = URL.createObjectURL(new Blob([source], {type: "image/svg+xml;charset=utf-8"}));
+            const image = new Image();
+            image.onload = () => {
+              const canvas = document.createElement("canvas");
+              canvas.width = Math.ceil(width * scale);
+              canvas.height = Math.ceil(height * scale);
+              const context = canvas.getContext("2d");
+              context.fillStyle = "#ffffff";
+              context.fillRect(0, 0, canvas.width, canvas.height);
+              context.drawImage(image, 0, 0, canvas.width, canvas.height);
+              URL.revokeObjectURL(url);
+              canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Conversione JPG non riuscita.")), "image/jpeg", 0.95);
+            };
+            image.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Immagine del riquadro non disponibile.")); };
+            image.src = url;
+          });
+        }
+
+        async function popupHtmlToJpeg(content, scale) {
+          const rect = content.getBoundingClientRect();
+          const width = Math.ceil(Math.max(720, content.scrollWidth, rect.width));
+          const height = Math.ceil(Math.max(160, content.scrollHeight, rect.height));
+          const css = Array.from(document.styleSheets).flatMap((sheet) => {
+            try { return Array.from(sheet.cssRules, (rule) => rule.cssText); } catch { return []; }
+          }).join("\\n").replaceAll("</style", "<\\/style");
+          const markup = '<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width:' + width + 'px;min-height:' + height + 'px;box-sizing:border-box;padding:24px;background:#fffefa;"><style>' + css + '</style>' + content.innerHTML + '</div></foreignObject></svg>';
+          return popupSvgToJpeg(new DOMParser().parseFromString(markup, "image/svg+xml").documentElement, scale);
+        }
+
+        document.getElementById("popupJpgBtn").addEventListener("click", async () => {
+          const content = document.querySelector(".popup-content");
+          const svg = content.querySelector("svg");
+          try {
+            const blob = svg ? await popupSvgToJpeg(svg, 2) : await popupHtmlToJpeg(content, 2);
+            popupDownload("${fileNamePart(title)}-${fileNamePart(state.name)}.jpg", blob);
+          } catch (error) {
+            window.alert(error.message || "Esportazione JPG non riuscita.");
+          }
+        });
+      </script>
+    </html>`;
+  const popupUrl = URL.createObjectURL(new Blob([popupHtml], { type: "text/html;charset=utf-8" }));
+  const popup = window.open(popupUrl, "_blank", "popup,width=1180,height=820,resizable=yes,scrollbars=yes");
+  if (!popup) {
+    URL.revokeObjectURL(popupUrl);
+    showToast("La finestra separata è stata bloccata dal browser.", "error");
+    return;
+  }
+  window.setTimeout(() => URL.revokeObjectURL(popupUrl), 60000);
   popup.focus();
 }
 
