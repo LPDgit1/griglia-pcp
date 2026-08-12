@@ -13,3 +13,14 @@ outputs/
 
 .DS_Store
 Thumbs.db
+
+# ChatGPT Sites / Node
+node_modules/
+.next/
+.vinext/
+dist/
+.wrangler/
+coverage/
+.env*
+pnpm-debug.log*
+/chatgpt-sites/

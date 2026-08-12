@@ -43,6 +43,30 @@ La cartella `outputs/` non serve per il deploy ed è esclusa da `.gitignore`.
 
 Non sono richieste variabili segrete o credenziali.
 
+## Versione standalone Windows
+
+La cartella `standalone/` contiene i sorgenti per creare un installer locale.
+Il pacchetto risultante non richiede Python, Node.js, Streamlit o connessione
+Internet e installa l'app per il solo utente corrente.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File standalone\build-installer.ps1
+```
+
+## Pubblicazione su ChatGPT Sites
+
+Il supporto Sites e integrato nella radice dello stesso repository GitHub
+dell'edizione Streamlit. Per verificarlo:
+
+```powershell
+pnpm install
+pnpm test
+```
+
+La pubblicazione e la successiva scelta dell'accesso pubblico si effettuano da
+ChatGPT Sites. Anche in questa edizione le griglie restano nel browser del
+visitatore e non sono richiesti database o segreti.
+
 ## Nota metodologica
 
 Gli indici dell'area **RG Dynamics** sono operazionalizzazioni quantitative sperimentali del framework fornito dall'utente. Gli indici longitudinali e interpersonali richiederanno una futura estensione dei dati per gestire più griglie nel tempo o più griglie confrontabili.
