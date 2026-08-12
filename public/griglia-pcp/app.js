@@ -878,12 +878,18 @@ function heatColor(value) {
 function renderHeatmap(matrix, labels, options = {}) {
   if (!labels.length) return '<p class="muted small">Dati insufficienti.</p>';
   const width = options.width || 680;
-  const labelSpace = options.compact ? 132 : 166;
-  const cell = clamp(Math.floor((width - labelSpace - 18) / labels.length), 28, options.compact ? 48 : 53);
-  const chartWidth = labelSpace + cell * labels.length + 16;
-  const top = options.compact ? 100 : 140;
-  const chartHeight = top + cell * labels.length + 9;
   const fontSize = options.compact ? 10 : 11;
+  const displayedLabels = labels.map((label) => shorten(label, options.compact ? 18 : 24));
+  const maxLabelWidth = Math.max(
+    1,
+    ...displayedLabels.map((label) => label.length * fontSize * 0.62),
+  );
+  const labelSpace = Math.max(options.compact ? 132 : 166, Math.ceil(maxLabelWidth + 18));
+  const cell = clamp(Math.floor((width - labelSpace - 18) / labels.length), 28, options.compact ? 48 : 53);
+  const rightMargin = Math.max(24, Math.ceil(maxLabelWidth * 0.58 + 14));
+  const top = Math.max(options.compact ? 100 : 140, Math.ceil(maxLabelWidth * 0.82 + 20));
+  const chartWidth = labelSpace + cell * labels.length + rightMargin;
+  const chartHeight = top + cell * labels.length + 16;
   const cells = matrix.flatMap((row, rowIndex) =>
     row.map((value, colIndex) => `
       <rect x="${labelSpace + colIndex * cell}" y="${top + rowIndex * cell}" width="${cell - 2}" height="${cell - 2}"
@@ -895,10 +901,10 @@ function renderHeatmap(matrix, labels, options = {}) {
   ).join("");
   const rowLabels = labels.map((label, index) => `
     <text x="${labelSpace - 8}" y="${top + index * cell + cell / 2 + 3}" text-anchor="end" font-size="${fontSize}"
-      fill="#60706e">${escapeHtml(shorten(label, options.compact ? 18 : 24))}</text>`).join("");
-  const columnLabels = labels.map((label, index) => `
+      fill="#60706e">${escapeHtml(displayedLabels[index])}</text>`).join("");
+  const columnLabels = displayedLabels.map((label, index) => `
     <text x="${labelSpace + index * cell + cell / 2}" y="${top - 8}" text-anchor="start" font-size="${fontSize}"
-      fill="#60706e" transform="rotate(-55 ${labelSpace + index * cell + cell / 2} ${top - 8})">${escapeHtml(shorten(label, options.compact ? 18 : 24))}</text>`).join("");
+      fill="#60706e" transform="rotate(-55 ${labelSpace + index * cell + cell / 2} ${top - 8})">${escapeHtml(label)}</text>`).join("");
   return `<svg viewBox="0 0 ${chartWidth} ${chartHeight}" width="${chartWidth}" height="${chartHeight}" role="img" aria-label="Heatmap delle correlazioni">
     ${rowLabels}${columnLabels}${cells}
   </svg>`;
@@ -1430,6 +1436,54 @@ function svgToJpegBlob(svg, scale = 2) {
     };
     image.src = svgUrl;
   });
+}
+
+function openPanelWindow(selector, title) {
+  const source = document.querySelector(selector);
+  if (!source) {
+    showToast(`${title} non disponibile.`, "error");
+    return;
+  }
+  const popup = window.open("", "_blank", "popup,width=1180,height=820,resizable=yes,scrollbars=yes");
+  if (!popup) {
+    showToast("La finestra separata è stata bloccata dal browser.", "error");
+    return;
+  }
+  const stylesheetHref = escapeHtml(new URL("styles.css", document.baseURI).href);
+  const contentClasses = escapeHtml(Array.from(source.classList).join(" "));
+  popup.document.open();
+  popup.document.write(`<!doctype html>
+    <html lang="it">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>${escapeHtml(title)} · Griglia PCP</title>
+        <link rel="stylesheet" href="${stylesheetHref}" />
+        <style>
+          body { min-width: 0; margin: 0; padding: 24px; background: #f1eee5; }
+          .popup-shell { max-width: 1440px; margin: 0 auto; padding: 24px; border: 1px solid #d9dfd8; border-radius: 16px; background: #fffefa; box-shadow: 0 18px 50px rgba(35, 55, 50, 0.12); }
+          .popup-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+          .popup-heading h1 { margin: 0; color: #20302f; font-family: Georgia, serif; font-size: clamp(25px, 4vw, 38px); font-weight: 500; }
+          .popup-kicker { margin: 0 0 6px; color: #34766e; font-size: 12px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+          .popup-content { min-width: 0; }
+          .popup-content.chart-wrap { min-height: 0; overflow: visible; }
+          .popup-content.chart-wrap svg { width: auto; max-width: none !important; height: auto; }
+          .popup-content table { width: 100%; }
+          @media (max-width: 700px) { body { padding: 10px; } .popup-shell { padding: 15px; } .popup-heading { display: block; } .popup-heading button { margin-top: 12px; } }
+        </style>
+      </head>
+      <body>
+        <main class="popup-shell">
+          <div class="popup-heading">
+            <div><p class="popup-kicker">Visualizzazione separata</p><h1>${escapeHtml(title)}</h1></div>
+            <button class="secondary-button" type="button" onclick="window.print()">Stampa / PDF</button>
+          </div>
+          <div class="popup-content ${contentClasses}">${source.innerHTML}</div>
+        </main>
+      </body>
+    </html>`);
+  popup.document.close();
+  popup.focus();
 }
 
 async function exportChartJpg(containerSelector, fileStem, chartName) {
@@ -2018,6 +2072,16 @@ function bindEvents() {
   document.getElementById("correlationScope").addEventListener("change", () => renderCorrelations(calculateAnalysis()));
   document.getElementById("clusterScope").addEventListener("change", renderClusters);
   document.getElementById("clusterLinkage").addEventListener("change", renderClusters);
+  document.getElementById("openIndicatorsBtn").addEventListener("click", () => openPanelWindow("#indicatorList", "Profilo strutturale"));
+  document.getElementById("openScaleDistributionBtn").addEventListener("click", () => openPanelWindow("#scaleDistribution", "Uso della scala"));
+  document.getElementById("openDashboardHeatmapBtn").addEventListener("click", () => openPanelWindow("#dashboardHeatmap", "Correlazioni tra costrutti"));
+  document.getElementById("openInsightsBtn").addEventListener("click", () => openPanelWindow("#insightList", "In evidenza"));
+  document.getElementById("openCorrelationHeatmapBtn").addEventListener("click", () => openPanelWindow("#correlationHeatmap", "Heatmap delle correlazioni"));
+  document.getElementById("openCorrelationHighlightsBtn").addEventListener("click", () => openPanelWindow("#correlationHighlights", "Associazioni più forti"));
+  document.getElementById("openCorrelationTableBtn").addEventListener("click", () => openPanelWindow("#correlationTable", "Matrice completa"));
+  document.getElementById("openScreeBtn").addEventListener("click", () => openPanelWindow("#screeChart", "Scree plot degli autovalori"));
+  document.getElementById("openFactorMapBtn").addEventListener("click", () => openPanelWindow("#factorMap", "Mappa degli elementi"));
+  document.getElementById("openDendrogramBtn").addEventListener("click", () => openPanelWindow("#dendrogram", "Dendrogramma"));
   document.getElementById("exportDashboardHeatmapJpgBtn").addEventListener("click", () => {
     exportChartJpg("#dashboardHeatmap", "heatmap-rapida", "Heatmap rapida");
   });

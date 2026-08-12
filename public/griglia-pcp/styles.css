@@ -1157,3 +1157,8 @@ th .label-input,
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+
+.panel-heading > .secondary-button,
+.panel-heading > .inline-actions > .secondary-button {
+  flex-shrink: 0;
+}

@@ -99,7 +99,10 @@
                     <p class="section-kicker">Indicatori PCP</p>
                     <h3>Profilo strutturale</h3>
                   </div>
-                  <span class="badge">classici</span>
+                  <div class="inline-actions chart-actions">
+                    <span class="badge">classici</span>
+                    <button class="secondary-button" id="openIndicatorsBtn">Apri finestra</button>
+                  </div>
                 </div>
                 <div id="indicatorList" class="indicator-list"></div>
               </article>
@@ -109,6 +112,7 @@
                     <p class="section-kicker">Distribuzione</p>
                     <h3>Uso della scala</h3>
                   </div>
+                  <button class="secondary-button" id="openScaleDistributionBtn">Apri finestra</button>
                 </div>
                 <div id="scaleDistribution"></div>
               </article>
@@ -120,6 +124,7 @@
                   </div>
                   <div class="inline-actions chart-actions">
                     <button class="text-button" data-view-target="correlations">Apri matrice</button>
+                    <button class="secondary-button" id="openDashboardHeatmapBtn">Apri finestra</button>
                     <button class="secondary-button" id="exportDashboardHeatmapJpgBtn">Scarica JPG</button>
                   </div>
                 </div>
@@ -131,6 +136,7 @@
                     <p class="section-kicker">Lettura guidata</p>
                     <h3>In evidenza</h3>
                   </div>
+                  <button class="secondary-button" id="openInsightsBtn">Apri finestra</button>
                 </div>
                 <div id="insightList" class="insight-list"></div>
               </article>
@@ -196,6 +202,7 @@
                   <h3 id="correlationHeatmapTitle">Heatmap dei costrutti</h3>
                   <div class="inline-actions chart-actions">
                     <span class="badge">Pearson r</span>
+                    <button class="secondary-button" id="openCorrelationHeatmapBtn">Apri finestra</button>
                     <button class="secondary-button" id="exportCorrelationHeatmapJpgBtn">Scarica JPG</button>
                   </div>
                 </div>
@@ -204,6 +211,7 @@
               <article class="panel span-5">
                 <div class="panel-heading">
                   <h3>Associazioni più forti</h3>
+                  <button class="secondary-button" id="openCorrelationHighlightsBtn">Apri finestra</button>
                 </div>
                 <div id="correlationHighlights" class="insight-list"></div>
               </article>
@@ -211,6 +219,7 @@
             <article class="panel top-gap">
               <div class="panel-heading">
                 <h3>Matrice completa</h3>
+                <button class="secondary-button" id="openCorrelationTableBtn">Apri finestra</button>
               </div>
               <div class="table-scroll">
                 <table class="analysis-table" id="correlationTable"></table>
@@ -316,7 +325,10 @@
                     <p class="section-kicker">Autovalori</p>
                     <h3>Scree plot</h3>
                   </div>
-                  <button class="secondary-button" id="exportScreeJpgBtn">Scarica JPG</button>
+                  <div class="inline-actions chart-actions">
+                    <button class="secondary-button" id="openScreeBtn">Apri finestra</button>
+                    <button class="secondary-button" id="exportScreeJpgBtn">Scarica JPG</button>
+                  </div>
                 </div>
                 <div id="screeChart" class="chart-wrap"></div>
               </article>
@@ -326,7 +338,10 @@
                     <p class="section-kicker">Prime due componenti</p>
                     <h3>Mappa degli elementi</h3>
                   </div>
-                  <button class="secondary-button" id="exportFactorMapJpgBtn">Scarica JPG</button>
+                  <div class="inline-actions chart-actions">
+                    <button class="secondary-button" id="openFactorMapBtn">Apri finestra</button>
+                    <button class="secondary-button" id="exportFactorMapJpgBtn">Scarica JPG</button>
+                  </div>
                 </div>
                 <div id="factorMap" class="chart-wrap"></div>
               </article>
@@ -373,7 +388,10 @@
                   <p class="section-kicker">Dendrogramma</p>
                   <h3 id="dendrogramTitle">Raggruppamento degli elementi</h3>
                 </div>
-                <button class="secondary-button" id="exportDendrogramJpgBtn">Scarica JPG</button>
+                <div class="inline-actions chart-actions">
+                  <button class="secondary-button" id="openDendrogramBtn">Apri finestra</button>
+                  <button class="secondary-button" id="exportDendrogramJpgBtn">Scarica JPG</button>
+                </div>
               </div>
               <div id="dendrogram" class="chart-wrap dendrogram-wrap"></div>
             </article>
