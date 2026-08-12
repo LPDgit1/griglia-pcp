@@ -878,12 +878,12 @@ function heatColor(value) {
 function renderHeatmap(matrix, labels, options = {}) {
   if (!labels.length) return '<p class="muted small">Dati insufficienti.</p>';
   const width = options.width || 680;
-  const labelSpace = options.compact ? 116 : 155;
+  const labelSpace = options.compact ? 132 : 166;
   const cell = clamp(Math.floor((width - labelSpace - 18) / labels.length), 28, options.compact ? 48 : 53);
   const chartWidth = labelSpace + cell * labels.length + 16;
   const top = options.compact ? 100 : 140;
   const chartHeight = top + cell * labels.length + 9;
-  const fontSize = options.compact ? 9 : 10;
+  const fontSize = options.compact ? 10 : 11;
   const cells = matrix.flatMap((row, rowIndex) =>
     row.map((value, colIndex) => `
       <rect x="${labelSpace + colIndex * cell}" y="${top + rowIndex * cell}" width="${cell - 2}" height="${cell - 2}"
@@ -1234,13 +1234,13 @@ function renderFactorMap(pca) {
     <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Mappa PCA degli elementi">
       <line x1="${padding}" y1="${height / 2}" x2="${width - padding}" y2="${height / 2}" stroke="#d8dfdc" stroke-dasharray="3 4" />
       <line x1="${width / 2}" y1="${padding - 12}" x2="${width / 2}" y2="${height - padding + 8}" stroke="#d8dfdc" stroke-dasharray="3 4" />
-      <text x="${width - padding}" y="${height / 2 - 7}" text-anchor="end" font-size="10" fill="#6e7c79">C1 · ${fmt(pca.explained[0] || 0)}%</text>
-      <text x="${width / 2 + 7}" y="${padding - 13}" font-size="10" fill="#6e7c79">C2 · ${fmt(pca.explained[1] || 0)}%</text>
+      <text x="${width - padding}" y="${height / 2 - 7}" text-anchor="end" font-size="11" fill="#6e7c79">C1 · ${fmt(pca.explained[0] || 0)}%</text>
+      <text x="${width / 2 + 7}" y="${padding - 13}" font-size="11" fill="#6e7c79">C2 · ${fmt(pca.explained[1] || 0)}%</text>
       ${pca.scores.map((score, index) => `
         <circle cx="${xScale(score[0] || 0)}" cy="${yScale(score[1] || 0)}" r="5" fill="#d39152" stroke="#fff" stroke-width="2">
           <title>${escapeHtml(state.elements[index])}: C1 ${fmtSmart(score[0] || 0)}, C2 ${fmtSmart(score[1] || 0)}</title>
         </circle>
-        <text x="${xScale(score[0] || 0) + 8}" y="${yScale(score[1] || 0) - 6}" font-size="10" fill="#415b58">${escapeHtml(shorten(state.elements[index], 18))}</text>`).join("")}
+        <text x="${xScale(score[0] || 0) + 8}" y="${yScale(score[1] || 0) - 6}" font-size="11" fill="#415b58">${escapeHtml(shorten(state.elements[index], 18))}</text>`).join("")}
     </svg>`;
 }
 

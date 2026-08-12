@@ -1143,6 +1143,16 @@ th .label-input,
   font-size: 17px;
 }
 
+.insight-card p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.analysis-table th,
+.analysis-table td {
+  font-size: 14px;
+}
+
 .chart-actions {
   flex-wrap: wrap;
   justify-content: flex-end;

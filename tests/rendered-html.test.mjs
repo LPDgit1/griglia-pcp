@@ -36,12 +36,13 @@ test("server-renders the Griglia PCP shell", async () => {
 });
 
 test("ships the complete static application and social preview", async () => {
-  const [page, layout, packageJson, appHtml, appScript] = await Promise.all([
+  const [page, layout, packageJson, appHtml, appScript, appStyles] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../public/griglia-pcp/index.html", import.meta.url), "utf8"),
     readFile(new URL("../public/griglia-pcp/app.js", import.meta.url), "utf8"),
+    readFile(new URL("../public/griglia-pcp/styles.css", import.meta.url), "utf8"),
   ]);
 
   assert.match(page, /\/griglia-pcp\/index\.html/);
@@ -61,6 +62,10 @@ test("ships the complete static application and social preview", async () => {
   assert.match(appScript, /name: "Griglia senza titolo"/);
   assert.match(appScript, /function svgToJpegBlob/);
   assert.match(appScript, /function exportChartJpg/);
+  assert.match(appScript, /const fontSize = options\.compact \? 10 : 11/);
+  assert.match(appScript, /font-size="11" fill="#415b58"/);
+  assert.match(appStyles, /\.insight-card p[\s\S]*font-size: 14px/);
+  assert.match(appStyles, /\.analysis-table th,[\s\S]*font-size: 14px/);
   assert.match(appScript, /"image\/jpeg", 0\.95/);
   await access(new URL("../public/griglia-pcp/styles.css", import.meta.url));
   await access(new URL("../public/og.png", import.meta.url));
