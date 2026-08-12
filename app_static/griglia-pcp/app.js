@@ -1551,6 +1551,17 @@ function openPanelWindow(selector, title) {
     showToast("La finestra separata è stata bloccata dal browser.", "error");
     return;
   }
+  function writePopupFallback() {
+    try {
+      if (popup.closed || popup.document.getElementById("popupJpgBtn")) return;
+      popup.document.open();
+      popup.document.write(popupHtml);
+      popup.document.close();
+    } catch {
+      // A cross-origin popup is already navigating to the Blob document.
+    }
+  }
+  window.setTimeout(writePopupFallback, 900);
   window.setTimeout(() => URL.revokeObjectURL(popupUrl), 60000);
   popup.focus();
 }

@@ -71,6 +71,7 @@ test("ships the complete static application and social preview", async () => {
   assert.match(appScript, /id="popupJpgBtn"/);
   assert.match(appScript, /async function popupHtmlToJpeg/);
   assert.match(appScript, /popupDownload\("\$\{fileNamePart\(title\)\}/);
+  assert.match(appScript, /function writePopupFallback/);
   assert.match(appScript, /popup,width=1180,height=820/);
   assert.match(appScript, /const fontSize = options\.compact \? 10 : 11/);
   assert.match(appScript, /const rightMargin = Math\.max\(24/);
