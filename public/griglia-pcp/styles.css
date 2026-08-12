@@ -86,7 +86,7 @@ button {
 .brand-author {
   margin-top: 6px;
   color: #e8bf91 !important;
-  font-size: 11px !important;
+  font-size: 12px !important;
   letter-spacing: 0.035em !important;
   text-transform: none !important;
 }
@@ -1052,7 +1052,7 @@ select {
 
 /* Legibility tuning */
 .brand strong {
-  font-size: 16px;
+  font-size: 17px;
 }
 
 .brand small,
@@ -1069,11 +1069,11 @@ select {
 .table-note,
 .select-label,
 .upload-zone small {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .nav-caption {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .nav-item,
@@ -1081,23 +1081,23 @@ select {
 .metric-card .unit,
 .cell-input,
 .help-list {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 h1 {
-  font-size: 30px;
+  font-size: 31px;
 }
 
 h2 {
-  font-size: 31px;
+  font-size: 32px;
 }
 
 .dashboard-name-control input {
-  font-size: 31px;
+  font-size: 32px;
 }
 
 h3 {
-  font-size: 17px;
+  font-size: 18px;
 }
 
 .grid-name,
@@ -1111,12 +1111,12 @@ select,
 .upload-zone,
 .csv-example,
 .toast {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .grid-name-control,
 .grid-name-control input {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .ghost-button,
@@ -1128,17 +1128,22 @@ th .label-input,
 .analysis-table th,
 .analysis-table td,
 .modal-note {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .metric-card .value {
-  font-size: 35px;
+  font-size: 36px;
 }
 
 .badge {
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .remove-button {
-  font-size: 16px;
+  font-size: 17px;
+}
+
+.chart-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }

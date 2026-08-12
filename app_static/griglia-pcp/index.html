@@ -118,7 +118,10 @@
                     <p class="section-kicker">Mappa rapida</p>
                     <h3>Correlazioni tra costrutti</h3>
                   </div>
-                  <button class="text-button" data-view-target="correlations">Apri matrice</button>
+                  <div class="inline-actions chart-actions">
+                    <button class="text-button" data-view-target="correlations">Apri matrice</button>
+                    <button class="secondary-button" id="exportDashboardHeatmapJpgBtn">Scarica JPG</button>
+                  </div>
                 </div>
                 <div id="dashboardHeatmap" class="chart-wrap"></div>
               </article>
@@ -191,7 +194,10 @@
               <article class="panel span-7">
                 <div class="panel-heading">
                   <h3 id="correlationHeatmapTitle">Heatmap dei costrutti</h3>
-                  <span class="badge">Pearson r</span>
+                  <div class="inline-actions chart-actions">
+                    <span class="badge">Pearson r</span>
+                    <button class="secondary-button" id="exportCorrelationHeatmapJpgBtn">Scarica JPG</button>
+                  </div>
                 </div>
                 <div id="correlationHeatmap" class="chart-wrap large-chart"></div>
               </article>
@@ -310,6 +316,7 @@
                     <p class="section-kicker">Autovalori</p>
                     <h3>Scree plot</h3>
                   </div>
+                  <button class="secondary-button" id="exportScreeJpgBtn">Scarica JPG</button>
                 </div>
                 <div id="screeChart" class="chart-wrap"></div>
               </article>
@@ -319,6 +326,7 @@
                     <p class="section-kicker">Prime due componenti</p>
                     <h3>Mappa degli elementi</h3>
                   </div>
+                  <button class="secondary-button" id="exportFactorMapJpgBtn">Scarica JPG</button>
                 </div>
                 <div id="factorMap" class="chart-wrap"></div>
               </article>

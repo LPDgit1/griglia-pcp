@@ -1426,10 +1426,25 @@ function svgToJpegBlob(svg, scale = 2) {
     };
     image.onerror = () => {
       URL.revokeObjectURL(svgUrl);
-      reject(new Error("Immagine del dendrogramma non disponibile."));
+      reject(new Error("Immagine del grafico non disponibile."));
     };
     image.src = svgUrl;
   });
+}
+
+async function exportChartJpg(containerSelector, fileStem, chartName) {
+  const svg = document.querySelector(`${containerSelector} svg`);
+  if (!svg) {
+    showToast(`${chartName} non disponibile.`, "error");
+    return;
+  }
+  try {
+    const blob = await svgToJpegBlob(svg);
+    downloadBlob(`${fileStem}-${fileNamePart(state.name)}.jpg`, blob);
+    showToast(`${chartName} JPG scaricato.`);
+  } catch (error) {
+    showToast(error.message || "Esportazione JPG non riuscita.", "error");
+  }
 }
 
 async function exportCurrentDendrogramJpg() {
@@ -2003,6 +2018,20 @@ function bindEvents() {
   document.getElementById("correlationScope").addEventListener("change", () => renderCorrelations(calculateAnalysis()));
   document.getElementById("clusterScope").addEventListener("change", renderClusters);
   document.getElementById("clusterLinkage").addEventListener("change", renderClusters);
+  document.getElementById("exportDashboardHeatmapJpgBtn").addEventListener("click", () => {
+    exportChartJpg("#dashboardHeatmap", "heatmap-rapida", "Heatmap rapida");
+  });
+  document.getElementById("exportCorrelationHeatmapJpgBtn").addEventListener("click", () => {
+    const scope = document.getElementById("correlationScope").value;
+    const scopeName = scope === "elements" ? "elementi" : "costrutti";
+    exportChartJpg("#correlationHeatmap", `heatmap-${scopeName}`, "Heatmap completa");
+  });
+  document.getElementById("exportScreeJpgBtn").addEventListener("click", () => {
+    exportChartJpg("#screeChart", "autovalori", "Grafico degli autovalori");
+  });
+  document.getElementById("exportFactorMapJpgBtn").addEventListener("click", () => {
+    exportChartJpg("#factorMap", "mappa-elementi", "Mappa degli elementi");
+  });
   document.getElementById("exportDendrogramJpgBtn").addEventListener("click", exportCurrentDendrogramJpg);
   document.getElementById("gridEditorTable").addEventListener("change", (event) => {
     const target = event.target;
